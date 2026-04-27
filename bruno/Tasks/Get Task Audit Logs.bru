@@ -1,0 +1,11 @@
+meta {
+  name: Get Task Audit Logs
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/tasks/{{taskId}}/audit-logs
+  body: none
+  auth: none
+}
