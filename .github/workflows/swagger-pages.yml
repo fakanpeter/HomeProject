@@ -1,0 +1,104 @@
+name: Publish Swagger UI to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: swagger-pages
+  cancel-in-progress: true
+
+jobs:
+  build-swagger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build backend and generate OpenAPI spec
+        run: ./gradlew clean build
+
+      - name: Find generated OpenAPI file
+        id: openapi
+        shell: bash
+        run: |
+          SPEC_FILE=$(find build/classes/java/main/META-INF/swagger -type f \( -name "*.yml" -o -name "*.yaml" -o -name "*.json" \) | head -n 1)
+
+          if [ -z "$SPEC_FILE" ]; then
+            echo "No OpenAPI spec found"
+            exit 1
+          fi
+
+          echo "Found OpenAPI spec: $SPEC_FILE"
+          echo "spec_file=$SPEC_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Build static Swagger UI
+        shell: bash
+        run: |
+          mkdir -p public
+          cp "${{ steps.openapi.outputs.spec_file }}" public/openapi.yaml
+
+          cat > public/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <title>Task Manager API Docs</title>
+            <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+          </head>
+          <body>
+            <div id="swagger-ui"></div>
+
+            <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+            <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+            <script>
+              window.onload = () => {
+                window.ui = SwaggerUIBundle({
+                  url: "./openapi.yaml",
+                  dom_id: "#swagger-ui",
+                  presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                  ],
+                  layout: "StandaloneLayout"
+                });
+              };
+            </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build-swagger
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
