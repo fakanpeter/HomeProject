@@ -8,3 +8,7 @@ datasources:
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
+
+kafka:
+  bootstrap:
+    servers: localhost:9092

@@ -3,6 +3,8 @@ package hu.backend.service;
 import hu.backend.dto.TaskAuditLogResponse;
 import hu.backend.dto.TaskRequest;
 import hu.backend.dto.TaskResponse;
+import hu.backend.kafka.TaskEventClient;
+import hu.backend.kafka.TaskEventProducer;
 import hu.backend.model.Task;
 import hu.backend.model.TaskAuditLog;
 import hu.backend.model.TaskStatus;
@@ -19,7 +21,7 @@ import java.util.List;
 public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskAuditLogRepository taskAuditLogRepository;
-    private final TaskExecutorService taskExecutorService;
+    private final TaskEventProducer taskEventProducer;
 
     public TaskResponse create(TaskRequest request) {
         Task task = Task.builder()
@@ -29,7 +31,7 @@ public class TaskService {
                 .build();
 
         Task savedTask = taskRepository.save(task);
-        taskExecutorService.executeAsync(savedTask.getId());
+        taskEventProducer.publishTaskCreatedEvent(savedTask);
         return toResponse(savedTask);
     }
 
