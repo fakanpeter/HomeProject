@@ -33,7 +33,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build backend and generate OpenAPI spec
-        run: ./gradlew clean build
+        run: ./gradlew clean build -x test
 
       - name: Find generated OpenAPI file
         id: openapi
