@@ -15,6 +15,7 @@ repositories {
 dependencies {
     annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
     annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor("io.micronaut.openapi:micronaut-openapi")
 
     compileOnly("org.projectlombok:lombok")
 
@@ -23,6 +24,7 @@ dependencies {
     implementation("io.micronaut.serde:micronaut-serde-jackson")
     implementation("io.micronaut.kafka:micronaut-kafka")
     implementation("io.reactivex.rxjava3:rxjava:3.1.12")
+    implementation("io.swagger.core.v3:swagger-annotations")
 
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("ch.qos.logback:logback-classic")
