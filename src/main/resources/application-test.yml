@@ -1,0 +1,16 @@
+datasources:
+  default:
+    url: jdbc:tc:postgresql:16:///task_manager_test
+    username: postgres
+    password: password
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+
+task:
+  processing:
+    start-delay: 0
+    processing-delay: 0
