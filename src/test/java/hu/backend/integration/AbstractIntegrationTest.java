@@ -9,6 +9,8 @@ import hu.backend.service.TaskStatusService;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
+import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +28,17 @@ public abstract class AbstractIntegrationTest {
 
     @Inject
     protected TaskStatusService taskStatusService;
+
+    public static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.9.1"));
+
+    static {
+        if (!KAFKA_CONTAINER.isRunning()) {
+            KAFKA_CONTAINER.start();
+        }
+
+        System.setProperty("micronaut.kafka.bootstrap-servers", KAFKA_CONTAINER.getBootstrapServers());
+        System.setProperty("kafka.bootstrap.servers", KAFKA_CONTAINER.getBootstrapServers());
+    }
 
     @BeforeEach
     void cleanDatabase() {
