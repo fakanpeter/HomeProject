@@ -32,8 +32,8 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build backend and generate OpenAPI spec
-        run: ./gradlew clean build -x test
+      - name: Test backend and generate OpenAPI spec
+        run: ./gradlew clean test
 
       - name: Find generated OpenAPI file
         id: openapi

@@ -75,4 +75,17 @@ public class TaskAuditLogRepository {
                 .changedAt(resultSet.getTimestamp("changed_at").toLocalDateTime())
                 .build();
     }
+
+    public void deleteAll() {
+        String sql = "DELETE FROM task_audit_logs";
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error while deleting audit logs.", e);
+        }
+    }
 }

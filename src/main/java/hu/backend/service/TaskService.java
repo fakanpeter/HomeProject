@@ -3,7 +3,6 @@ package hu.backend.service;
 import hu.backend.dto.TaskAuditLogResponse;
 import hu.backend.dto.TaskRequest;
 import hu.backend.dto.TaskResponse;
-import hu.backend.kafka.TaskEventClient;
 import hu.backend.kafka.TaskEventProducer;
 import hu.backend.model.Task;
 import hu.backend.model.TaskAuditLog;
@@ -22,6 +21,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskAuditLogRepository taskAuditLogRepository;
     private final TaskEventProducer taskEventProducer;
+    private final TaskStatusService taskStatusService;
 
     public TaskResponse create(TaskRequest request) {
         Task task = Task.builder()
@@ -71,6 +71,20 @@ public class TaskService {
                 .toList();
     }
 
+    public TaskResponse cancel(Long id) {
+        Task task = getTaskOrThrow(id);
+
+        if (task.getStatus() == TaskStatus.COMPLETED
+                || task.getStatus() == TaskStatus.FAILED
+                || task.getStatus() == TaskStatus.CANCELLED) {
+            throw new IllegalStateException("Task cannot be cancelled from status: " + task.getStatus());
+        }
+
+        Task cancelledTask = taskStatusService.changeStatus(task, TaskStatus.CANCELLED);
+
+        return TaskResponse.from(cancelledTask);
+    }
+
     private Task getTaskOrThrow(Long id) {
         return taskRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + id));
@@ -81,6 +95,6 @@ public class TaskService {
     }
 
     private TaskAuditLogResponse toAuditLogResponse(TaskAuditLog log) {
-       return TaskAuditLogResponse.from(log);
+        return TaskAuditLogResponse.from(log);
     }
 }

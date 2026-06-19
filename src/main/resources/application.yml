@@ -2,12 +2,22 @@ micronaut:
   application:
     name: task-manager
 
+task:
+  processing:
+    start-delay: 1000
+    processing-delay: 5000
+
 datasources:
   default:
     url: jdbc:postgresql://localhost:5432/task_manager
     username: postgres
     password: password
     driver-class-name: org.postgresql.Driver
+
+flyway:
+  datasources:
+    default:
+      enabled: true
 
 kafka:
   bootstrap:

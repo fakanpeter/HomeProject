@@ -52,4 +52,9 @@ public class TaskController {
     public List<TaskAuditLogResponse> findAuditLogs(Long id) {
         return taskService.findAuditLogsByTaskId(id);
     }
+
+    @Post("/{id}/cancel")
+    public TaskResponse cancel(Long id) {
+        return taskService.cancel(id);
+    }
 }
