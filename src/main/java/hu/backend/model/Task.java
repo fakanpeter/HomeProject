@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Task {
     private Long id;
+    private Long version;
     private String title;
     private TaskStatus status;
     private LocalDateTime createdAt;

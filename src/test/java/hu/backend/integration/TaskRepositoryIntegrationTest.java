@@ -1,15 +1,13 @@
 package hu.backend.integration;
 
+import hu.backend.exception.OptimisticLockingException;
 import hu.backend.model.Task;
 import hu.backend.model.TaskStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class TaskRepositoryIntegrationTest extends AbstractIntegrationTest {
 
@@ -87,5 +85,68 @@ class TaskRepositoryIntegrationTest extends AbstractIntegrationTest {
         var tasks = taskRepository.findAll();
 
         assertTrue(tasks.isEmpty());
+    }
+
+    @Test
+    void shouldIncrementVersionWhenTaskIsUpdated() {
+        Task task = Task.builder()
+                .title("Versioned task")
+                .status(TaskStatus.CREATED)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Task savedTask = taskRepository.save(task);
+
+        assertEquals(0L, savedTask.getVersion());
+
+        savedTask.setStatus(TaskStatus.RUNNING);
+
+        Task updatedTask = taskRepository.update(savedTask);
+
+        assertEquals(1L, updatedTask.getVersion());
+
+        Task foundTask = taskRepository.findById(savedTask.getId())
+                .orElseThrow();
+
+        assertEquals(1L, foundTask.getVersion());
+        assertEquals(TaskStatus.RUNNING, foundTask.getStatus());
+    }
+
+    @Test
+    void shouldRejectUpdateWithStaleVersion() {
+        Task task = Task.builder()
+                .title("Concurrent task")
+                .status(TaskStatus.CREATED)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Task savedTask = taskRepository.save(task);
+
+        Task firstCopy = taskRepository.findById(savedTask.getId())
+                .orElseThrow();
+
+        Task secondCopy = taskRepository.findById(savedTask.getId())
+                .orElseThrow();
+
+        firstCopy.setStatus(TaskStatus.RUNNING);
+        taskRepository.update(firstCopy);
+
+        secondCopy.setStatus(TaskStatus.CANCELLED);
+
+        OptimisticLockingException exception = assertThrows(
+                OptimisticLockingException.class,
+                () -> taskRepository.update(secondCopy)
+        );
+
+        assertEquals(
+                "Task was modified concurrently: " + savedTask.getId(),
+                exception.getMessage()
+        );
+
+        Task foundTask = taskRepository.findById(savedTask.getId())
+                .orElseThrow();
+
+        assertEquals(TaskStatus.RUNNING, foundTask.getStatus());
+        assertEquals(1L, foundTask.getVersion());
     }
 }
