@@ -1,27 +1,23 @@
 package hu.backend.observer;
 
 import hu.backend.model.Task;
-import hu.backend.model.TaskAuditLog;
 import hu.backend.model.TaskStatus;
-import hu.backend.repository.TaskAuditLogRepository;
+import hu.backend.service.TaskAuditLogService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AuditTaskObserverTest {
 
     @Mock
-    TaskAuditLogRepository taskAuditLogRepository;
+    TaskAuditLogService taskAuditLogService;
 
     @InjectMocks
     AuditTaskObserver auditTaskObserver;
@@ -42,16 +38,11 @@ class AuditTaskObserverTest {
                 TaskStatus.RUNNING
         );
 
-        ArgumentCaptor<TaskAuditLog> captor = ArgumentCaptor.forClass(TaskAuditLog.class);
-
-        verify(taskAuditLogRepository).save(captor.capture());
-
-        TaskAuditLog savedLog = captor.getValue();
-
-        assertEquals(1L, savedLog.getTaskId());
-        assertEquals(TaskStatus.CREATED, savedLog.getOldStatus());
-        assertEquals(TaskStatus.RUNNING, savedLog.getNewStatus());
-        assertNotNull(savedLog.getChangedAt());
+        verify(taskAuditLogService).createAuditLog(
+                1L,
+                TaskStatus.CREATED,
+                TaskStatus.RUNNING
+        );
     }
 
     @Test
@@ -70,15 +61,10 @@ class AuditTaskObserverTest {
                 TaskStatus.CANCELLED
         );
 
-        ArgumentCaptor<TaskAuditLog> captor = ArgumentCaptor.forClass(TaskAuditLog.class);
-
-        verify(taskAuditLogRepository).save(captor.capture());
-
-        TaskAuditLog savedLog = captor.getValue();
-
-        assertEquals(1L, savedLog.getTaskId());
-        assertEquals(TaskStatus.RUNNING, savedLog.getOldStatus());
-        assertEquals(TaskStatus.CANCELLED, savedLog.getNewStatus());
-        assertNotNull(savedLog.getChangedAt());
+        verify(taskAuditLogService).createAuditLog(
+                1L,
+                TaskStatus.RUNNING,
+                TaskStatus.CANCELLED
+        );
     }
 }
