@@ -1,7 +1,10 @@
 micronaut:
   application:
     name: task-manager
-
+  caches:
+    task-audit-logs-by-task:
+      maximum-size: 1000
+      expire-after-write: 10m
 task:
   processing:
     start-delay: 1000

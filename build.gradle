@@ -25,6 +25,7 @@ dependencies {
     implementation("io.micronaut.kafka:micronaut-kafka")
     implementation("io.reactivex.rxjava3:rxjava:3.1.12")
     implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("io.micronaut.cache:micronaut-cache-caffeine")
 
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("ch.qos.logback:logback-classic")

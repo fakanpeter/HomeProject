@@ -3,6 +3,7 @@ package hu.backend.controller;
 import hu.backend.dto.TaskRequest;
 import hu.backend.dto.TaskAuditLogResponse;
 import hu.backend.dto.TaskResponse;
+import hu.backend.service.TaskAuditLogService;
 import hu.backend.service.TaskService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class TaskController {
     private final TaskService taskService;
+    private final TaskAuditLogService taskAuditLogService;
 
     @Post
     public HttpResponse<TaskResponse> create(@Body TaskRequest request) {
@@ -50,7 +52,7 @@ public class TaskController {
 
     @Get("/{id}/audit-logs")
     public List<TaskAuditLogResponse> findAuditLogs(Long id) {
-        return taskService.findAuditLogsByTaskId(id);
+        return taskAuditLogService.findByTaskId(id);
     }
 
     @Post("/{id}/cancel")
