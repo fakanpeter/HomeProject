@@ -7,9 +7,73 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - task_manager_postgres_data:/var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "hot_standby=on"
+
+  postgres-replica:
+    image: postgres:16
+    container_name: task-manager-postgres-replica
+    environment:
+      POSTGRES_PASSWORD: password
+      PGPASSWORD: replicator_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - task_manager_postgres_replica_data:/var/lib/postgresql/data
+    depends_on:
+      - postgres
+    command: >
+      bash -c "
+        set -e;
+      
+        until pg_isready -h postgres -p 5432 -U postgres; do
+          echo 'Waiting for primary PostgreSQL...';
+          sleep 2;
+        done;
+      
+        if [ ! -s \"$$PGDATA/PG_VERSION\" ]; then
+          echo 'Initializing replica from primary...';
+          rm -rf \"$$PGDATA\"/*;
+      
+          pg_basebackup -h postgres -p 5432 -D \"$$PGDATA\" -U replicator -Fp -Xs -P;
+      
+          touch \"$$PGDATA/standby.signal\";
+      
+          echo \"primary_conninfo = 'host=postgres port=5432 user=replicator password=replicator_password application_name=task-manager-postgres-replica'\" >> \"$$PGDATA/postgresql.auto.conf\";
+      
+          echo 'Replica initialized.';
+        fi;
+      
+        chown -R postgres:postgres \"$$PGDATA\";
+        chmod 700 \"$$PGDATA\";
+      
+        exec gosu postgres postgres
+      "
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: task-manager-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8086:80"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres
+      - postgres-replica
 
   kafka:
     image: apache/kafka:4.1.2
@@ -49,3 +113,4 @@ services:
 
 volumes:
   task_manager_postgres_data:
+  task_manager_postgres_replica_data:

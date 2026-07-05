@@ -1,5 +1,6 @@
 package hu.backend.repository;
 
+import hu.backend.exception.OptimisticLockingException;
 import hu.backend.model.Task;
 import hu.backend.model.TaskStatus;
 import jakarta.inject.Singleton;
@@ -21,7 +22,7 @@ public class TaskRepository {
         String sql = """
                 INSERT INTO tasks (title, status, created_at)
                 VALUES (?, ?, ?)
-                RETURNING id
+                RETURNING id, version
                 """;
 
         try (Connection connection = dataSource.getConnection();
@@ -34,6 +35,7 @@ public class TaskRepository {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     task.setId(resultSet.getLong("id"));
+                    task.setVersion(resultSet.getLong("version"));
                     return task;
                 }
             }
@@ -48,6 +50,7 @@ public class TaskRepository {
         String sql = """
                 SELECT
                     id,
+                    version,
                     title,
                     status,
                     created_at,
@@ -79,6 +82,7 @@ public class TaskRepository {
         String sql = """
                 SELECT
                     id,
+                    version,
                     title,
                     status,
                     created_at,
@@ -112,8 +116,11 @@ public class TaskRepository {
                     status = ?,
                     updated_at = ?,
                     started_at = ?,
-                    finished_at = ?
+                    finished_at = ?,
+                    version = version + 1
                 WHERE id = ?
+                    AND version = ?
+                RETURNING version
                 """;
 
         task.setUpdatedAt(LocalDateTime.now());
@@ -127,13 +134,16 @@ public class TaskRepository {
             setNullableTimestamp(statement, 4, task.getStartedAt());
             setNullableTimestamp(statement, 5, task.getFinishedAt());
             statement.setLong(6, task.getId());
+            statement.setLong(7, task.getVersion());
 
-            int updatedRows = statement.executeUpdate();
-
-            if (updatedRows == 0) {
-                throw new RuntimeException("Task not found with id: " + task.getId());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    task.setVersion(resultSet.getLong("version"));
+                    return task;
+                }
             }
-            return task;
+
+            throw new OptimisticLockingException(task.getId());
 
         } catch (SQLException e) {
             throw new RuntimeException("Database error while updating task.", e);
@@ -173,6 +183,7 @@ public class TaskRepository {
     private Task mapTask(ResultSet resultSet) throws SQLException {
         return Task.builder()
                 .id(resultSet.getLong("id"))
+                .version(resultSet.getLong("version"))
                 .title(resultSet.getString("title"))
                 .status(TaskStatus.valueOf(resultSet.getString("status")))
                 .createdAt(toLocalDateTime(resultSet.getTimestamp("created_at")))
